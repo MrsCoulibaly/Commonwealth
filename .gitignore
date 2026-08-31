@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build (NestJS)
+dist/
+build/
+
+# Nuxt / Nitro / Vite
+.nuxt/
+.output/
+.nitro/
+.cache/
+.vite/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env (ne pas versionner les secrets)
+.env
+.env.*
+!.env.example
+
+# Prisma (client généré)
+generated/
+
+# Tests & couverture
+coverage/
+.nyc_output/
+*.lcov
+
+# TypeScript
+*.tsbuildinfo
+
+# Fichiers uploadés
+uploads/
+
+# Sortie des scripts backend (ex. mapping Cloudinary)
+scripts/output/*
+!scripts/output/.gitignore
+
+# Debug
+*.pid
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / éditeurs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.cursor/

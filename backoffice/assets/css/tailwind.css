@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #__nuxt {
+    height: 100%;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-white text-slate-900;
+  }
+
+  a {
+    @apply text-inherit no-underline;
+  }
+}
+
+@layer components {
+  .container {
+    @apply mx-auto w-[min(1100px,calc(100%-32px))];
+  }
+}
+
+@layer utilities {
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 8px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .animate-fade-up {
+    animation: fade-up 2.1s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
+
+  @keyframes float-y {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) rotate(-0.35deg) scale(1);
+    }
+    50% {
+      transform: translate3d(0, -12px, 0) rotate(0.35deg) scale(1.005);
+    }
+  }
+
+  .animate-float-y {
+    animation: float-y 18s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+    will-change: transform;
+  }
+
+  .reveal-init {
+    opacity: 0;
+    transition:
+      opacity 1.1s cubic-bezier(0.22, 0.61, 0.36, 1),
+      transform 1.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+    backface-visibility: hidden;
+  }
+
+  .reveal-init.reveal-up {
+    transform: translate3d(0, 44px, 0);
+  }
+
+  .reveal-init.reveal-left {
+    transform: translate3d(-56px, 0, 0);
+  }
+
+  .reveal-init.reveal-right {
+    transform: translate3d(56px, 0, 0);
+  }
+
+  .reveal-init.reveal-scale {
+    transform: translate3d(0, 36px, 0);
+  }
+
+  .reveal-init.reveal-smooth-up {
+    transform: translate3d(0, 52px, 0);
+    transition:
+      opacity 1.25s cubic-bezier(0.22, 0.61, 0.36, 1),
+      transform 1.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  .reveal-init.reveal-rise {
+    transform: translate3d(0, 48px, 0);
+  }
+
+  .reveal-in {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    .animate-fade-up {
+      animation: none;
+    }
+    .animate-float-y {
+      animation: none;
+    }
+    .reveal-init {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+    .reveal-in {
+      transition: none;
+    }
+  }
+}
+

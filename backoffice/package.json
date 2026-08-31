@@ -1,0 +1,37 @@
+{
+  "name": "gestion-scolaire-frontend",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#internal/nuxt/paths": "./shims/nuxt-internal-paths.mjs",
+    "#internal/nitro": "./shims/nuxt-internal-nitro.mjs"
+  },
+  "engines": {
+    "node": "20.x"
+  },
+  "scripts": {
+    "predev": "node scripts/check-node-version.mjs",
+    "dev": "nuxt dev",
+    "prebuild": "node scripts/check-node-version.mjs",
+    "build": "nuxt build",
+    "prestart": "node scripts/check-node-version.mjs",
+    "start": "node .output/server/index.mjs",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "typecheck": "nuxi typecheck"
+  },
+  "dependencies": {
+    "@nuxtjs/i18n": "^9.5.6",
+    "file-saver": "^2.0.5",
+    "nuxt": "^3.17.4"
+  },
+  "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.14.0",
+    "@types/node": "^22.19.17",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "sharp": "^0.34.5",
+    "sharp-cli": "^5.2.0",
+    "tailwindcss": "^3.4.19"
+  }
+}

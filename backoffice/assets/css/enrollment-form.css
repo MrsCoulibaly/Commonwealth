@@ -1,0 +1,55 @@
+.enrollment-input {
+  @apply h-10 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#216EC2] focus:ring-1 focus:ring-[#216EC2]/25;
+}
+
+.enrollment-input--readonly {
+  @apply cursor-default border-slate-100 bg-slate-50 text-slate-500;
+}
+
+.enrollment-textarea {
+  @apply min-h-[88px] w-full resize-y rounded-lg border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#216EC2] focus:ring-1 focus:ring-[#216EC2]/25;
+}
+
+.enrollment-choice-card {
+  @apply flex items-center gap-3 rounded-xl border px-4 py-3.5 text-left transition;
+}
+
+.enrollment-choice-card--selected {
+  @apply border-[#216EC2] bg-[#216EC2]/[0.05] ring-1 ring-[#216EC2]/20;
+}
+
+.enrollment-choice-card--default {
+  @apply border-slate-200 bg-white hover:border-slate-300;
+}
+
+.enrollment-radio {
+  @apply flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 transition;
+}
+
+.enrollment-radio--selected {
+  @apply border-[#216EC2] bg-[#216EC2];
+}
+
+.enrollment-radio--default {
+  @apply border-slate-300 bg-white;
+}
+
+.enrollment-choice-card--selected-green {
+  @apply border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/20;
+}
+
+.enrollment-radio--selected-green {
+  @apply border-emerald-500 bg-emerald-500;
+}
+
+.enrollment-checkbox {
+  @apply flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border-2 transition;
+}
+
+.enrollment-checkbox--selected-green {
+  @apply border-emerald-500 bg-emerald-500;
+}
+
+.enrollment-checkbox--default {
+  @apply border-slate-300 bg-white;
+}

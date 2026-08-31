@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /parent
+
+Sitemap: https://www.commonwealth-school.com/sitemap.xml
