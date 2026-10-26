@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { BillingModule } from '../billing/billing.module';
 import { MailModule } from '../mail/mail.module';
@@ -11,8 +11,17 @@ import { ParentInvoicePdfService } from './parent-invoice-pdf.service';
 import { ParentService } from './parent.service';
 
 @Module({
-  imports: [AuthModule, PrismaModule, BillingModule, PaymentsModule, NotificationsModule, MailModule, AdminModule],
+  imports: [
+    AuthModule,
+    PrismaModule,
+    BillingModule,
+    PaymentsModule,
+    NotificationsModule,
+    MailModule,
+    forwardRef(() => AdminModule),
+  ],
   controllers: [ParentController],
   providers: [ParentService, ParentInvoicePdfService],
+  exports: [ParentInvoicePdfService],
 })
 export class ParentModule {}

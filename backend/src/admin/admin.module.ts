@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { BillingModule } from '../billing/billing.module';
 import { EnrollmentsModule } from '../enrollments/enrollments.module';
@@ -6,6 +6,7 @@ import { MailModule } from '../mail/mail.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { ParentModule } from '../parent/parent.module';
 import { AdminDashboardController } from './admin-dashboard.controller';
 import { AdminDashboardService } from './admin-dashboard.service';
 import { AdminEnrollmentsController } from './admin-enrollments.controller';
@@ -36,7 +37,16 @@ import { AdminDataController } from './admin-data.controller';
 import { AdminDataService } from './admin-data.service';
 
 @Module({
-  imports: [PrismaModule, AuthModule, MailModule, EnrollmentsModule, BillingModule, NotificationsModule, PaymentsModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    MailModule,
+    EnrollmentsModule,
+    BillingModule,
+    NotificationsModule,
+    PaymentsModule,
+    forwardRef(() => ParentModule),
+  ],
   controllers: [
     AdminDashboardController,
     AdminEnrollmentsController,

@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  StreamableFile,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -22,6 +23,7 @@ import { RequireAppModule } from '../auth/require-app-module.decorator';
 import { CLOUDINARY_FOLDERS } from '../cloudinary/cloudinary.folders';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { IMAGE_FILENAME, memoryUploadOptions } from '../cloudinary/memory-upload';
+import { ParentInvoicePdfService } from '../parent/parent-invoice-pdf.service';
 import { AdminAteliersService } from './admin-ateliers.service';
 
 @Controller('admin/ateliers')
@@ -31,6 +33,7 @@ export class AdminAteliersController {
   constructor(
     private readonly ateliers: AdminAteliersService,
     private readonly cloudinary: CloudinaryService,
+    private readonly invoices: ParentInvoicePdfService,
   ) {}
 
   @Get()
@@ -42,6 +45,15 @@ export class AdminAteliersController {
     @Query('tab') tab?: string,
   ) {
     return this.ateliers.getOverview({ search, sort, dateFrom, dateTo, tab });
+  }
+
+  @Get('reservations/:id/invoice')
+  async reservationInvoice(@Param('id') id: string) {
+    const { buffer, filename } = await this.invoices.workshopPdf(id);
+    return new StreamableFile(buffer, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${filename}"`,
+    });
   }
 
   @Post('upload')

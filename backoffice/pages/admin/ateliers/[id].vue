@@ -25,6 +25,7 @@
     </div>
 
     <p v-if="loadError" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ loadError }}</p>
+    <p v-if="invoiceError" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ invoiceError }}</p>
     <p v-if="pending" class="text-sm text-slate-500">Chargement de l’atelier…</p>
 
     <template v-if="detail && !pending">
@@ -246,11 +247,12 @@
                 <th class="px-4 py-3.5 text-[12px] font-semibold">Places</th>
                 <th class="px-4 py-3.5 text-[12px] font-semibold">Statut</th>
                 <th class="px-4 py-3.5 text-[12px] font-semibold">Réservé le</th>
+                <th class="px-4 py-3.5 text-[12px] font-semibold">Facture</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-[#EEF2F7]">
               <tr v-if="!detail.reservations.length">
-                <td colspan="6" class="px-4 py-12 text-center text-slate-500">Aucune réservation pour cet atelier.</td>
+                <td colspan="7" class="px-4 py-12 text-center text-slate-500">Aucune réservation pour cet atelier.</td>
               </tr>
               <tr v-for="row in detail.reservations" :key="row.id" class="bg-white text-slate-700">
                 <td class="whitespace-nowrap px-4 py-3.5">
@@ -273,6 +275,18 @@
                   </span>
                 </td>
                 <td class="whitespace-nowrap px-4 py-3.5 text-[12px] text-slate-500">{{ row.reservedAt }}</td>
+                <td class="whitespace-nowrap px-4 py-3.5">
+                  <button
+                    v-if="row.invoiceAvailable"
+                    type="button"
+                    class="rounded-lg border border-[#216EC2] bg-[#EFF6FF] px-2.5 py-1.5 text-[11px] font-bold text-[#216EC2] disabled:opacity-50"
+                    :disabled="invoiceBusyId === row.id"
+                    @click="downloadReservationInvoice(row)"
+                  >
+                    {{ invoiceBusyId === row.id ? '…' : 'Télécharger' }}
+                  </button>
+                  <span v-else class="text-[11px] text-slate-400">—</span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -338,12 +352,14 @@ type DetailDto = {
     places: number
     status: ReservationStatus
     reservedAt: string
+    invoiceAvailable?: boolean
   }>
 }
 
 const route = useRoute()
 const router = useRouter()
 const { token } = useAuth()
+const { downloadAdminPdf } = useAdminBlobDownload()
 const config = useRuntimeConfig()
 
 const tab = ref<'detail' | 'reservations'>('detail')
@@ -351,6 +367,8 @@ const detail = ref<DetailDto | null>(null)
 const pending = ref(true)
 const loadError = ref<string | null>(null)
 const actionPending = ref(false)
+const invoiceBusyId = ref<string | null>(null)
+const invoiceError = ref<string | null>(null)
 
 const atelierId = computed(() => String(route.params.id || ''))
 const atelier = computed(() => detail.value!.atelier)
@@ -378,6 +396,21 @@ function apiErrorMessage(e: unknown, fallback: string) {
   const msg = err?.data?.message
   if (Array.isArray(msg)) return msg.join(', ')
   return msg || err?.message || fallback
+}
+
+async function downloadReservationInvoice(row: { id: string; code: string }) {
+  invoiceError.value = null
+  invoiceBusyId.value = row.id
+  try {
+    await downloadAdminPdf(
+      `/admin/ateliers/reservations/${row.id}/invoice`,
+      `Facture-atelier-${row.code}.pdf`,
+    )
+  } catch (e: unknown) {
+    invoiceError.value = e instanceof Error ? e.message : 'Impossible de télécharger la facture.'
+  } finally {
+    invoiceBusyId.value = null
+  }
 }
 
 async function loadDetail() {

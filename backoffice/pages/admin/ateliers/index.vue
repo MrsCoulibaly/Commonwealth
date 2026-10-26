@@ -420,6 +420,20 @@
               <td class="px-4 py-3.5">
                 <div class="relative flex items-center gap-2">
                   <button
+                    v-if="row.invoiceAvailable"
+                    type="button"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] text-[#216EC2] transition hover:bg-[#DBEAFE] disabled:opacity-50"
+                    title="Télécharger la facture"
+                    :disabled="invoiceBusyId === row.id"
+                    @click="downloadReservationInvoice(row)"
+                  >
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" stroke-linejoin="round" />
+                      <path d="M14 3v5h5" stroke-linejoin="round" />
+                      <path d="M8 13h8M8 17h5" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                  <button
                     type="button"
                     class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] text-[#216EC2] transition hover:bg-[#DBEAFE]"
                     title="Voir"
@@ -447,6 +461,15 @@
                     v-if="actionId === row.id"
                     class="absolute right-0 top-10 z-20 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
                   >
+                    <button
+                      v-if="row.invoiceAvailable"
+                      type="button"
+                      class="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      :disabled="invoiceBusyId === row.id"
+                      @click="downloadReservationInvoice(row)"
+                    >
+                      {{ invoiceBusyId === row.id ? 'Facture…' : 'Télécharger la facture' }}
+                    </button>
                     <button
                       type="button"
                       class="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
@@ -806,8 +829,18 @@
             <div><dt class="text-xs font-semibold text-slate-400">Session</dt><dd>{{ selectedReservation.sessionLabel }}</dd></div>
             <div><dt class="text-xs font-semibold text-slate-400">Compte</dt><dd>{{ accountKindLabel(selectedReservation.accountKind) }}</dd></div>
             <div><dt class="text-xs font-semibold text-slate-400">Statut réservation</dt><dd>{{ statusLabel(selectedReservation.status) }}</dd></div>
+            <div v-if="selectedReservation.priceLabel"><dt class="text-xs font-semibold text-slate-400">Tarif</dt><dd>{{ selectedReservation.priceLabel }}</dd></div>
           </dl>
-          <div class="mt-6 flex justify-end">
+          <div class="mt-6 flex justify-end gap-2">
+            <button
+              v-if="selectedReservation.invoiceAvailable"
+              type="button"
+              class="rounded-xl border border-[#216EC2] bg-white px-4 py-2.5 text-sm font-bold text-[#216EC2] disabled:opacity-50"
+              :disabled="invoiceBusyId === selectedReservation.id"
+              @click="downloadReservationInvoice(selectedReservation)"
+            >
+              {{ invoiceBusyId === selectedReservation.id ? 'Facture…' : 'Télécharger la facture' }}
+            </button>
             <button type="button" class="rounded-xl bg-[#216EC2] px-4 py-2.5 text-sm font-bold text-white" @click="selectedReservation = null">
               Fermer
             </button>
@@ -875,6 +908,9 @@ type Reservation = {
   reservedAt: string
   reservedAtDate?: string
   reservedAtTime?: string
+  isFree?: boolean
+  priceLabel?: string
+  invoiceAvailable?: boolean
 }
 
 type OverviewDto = {
@@ -893,6 +929,7 @@ type OverviewDto = {
 }
 
 const { token } = useAuth()
+const { downloadAdminPdf } = useAdminBlobDownload()
 const config = useRuntimeConfig()
 const route = useRoute()
 const router = useRouter()
@@ -907,6 +944,7 @@ const editingId = ref<string | null>(null)
 const existingImageUrl = ref('')
 const actionId = ref<string | null>(null)
 const selectedReservation = ref<Reservation | null>(null)
+const invoiceBusyId = ref<string | null>(null)
 const atelierPage = ref(1)
 const atelierPageSize = 10
 const imageInput = ref<HTMLInputElement | null>(null)
@@ -1222,6 +1260,22 @@ function accountKindClass(kind?: 'PARENT' | 'VISITEUR') {
   return 'bg-emerald-50 text-emerald-700'
 }
 
+async function downloadReservationInvoice(row: Reservation) {
+  actionId.value = null
+  invoiceBusyId.value = row.id
+  loadError.value = null
+  try {
+    await downloadAdminPdf(
+      `/admin/ateliers/reservations/${row.id}/invoice`,
+      `Facture-atelier-${row.code}.pdf`,
+    )
+  } catch (e: unknown) {
+    loadError.value = e instanceof Error ? e.message : 'Impossible de télécharger la facture.'
+  } finally {
+    invoiceBusyId.value = null
+  }
+}
+
 async function setReservationStatus(row: Reservation, status: ReservationStatus) {
   actionId.value = null
   try {
@@ -1231,8 +1285,13 @@ async function setReservationStatus(row: Reservation, status: ReservationStatus)
       body: { status },
     })
     row.status = status
+    row.invoiceAvailable = !row.isFree && status !== 'ANNULEE'
     if (selectedReservation.value?.id === row.id) {
-      selectedReservation.value = { ...selectedReservation.value, status }
+      selectedReservation.value = {
+        ...selectedReservation.value,
+        status,
+        invoiceAvailable: row.invoiceAvailable,
+      }
     }
   } catch (e: unknown) {
     loadError.value = apiErrorMessage(e, 'Impossible de mettre à jour le statut.')

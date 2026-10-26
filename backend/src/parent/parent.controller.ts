@@ -136,6 +136,18 @@ export class ParentController {
     });
   }
 
+  @Get('invoices/workshop/:reservationId/pdf')
+  async workshopInvoicePdf(
+    @ParentUser() jwt: ParentJwtPayload,
+    @Param('reservationId') reservationId: string,
+  ) {
+    const { buffer, filename } = await this.parentInvoicePdf.workshopPdf(reservationId, jwt.sub);
+    return new StreamableFile(buffer, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${filename}"`,
+    });
+  }
+
   @Get('receipts/tuition/:chargeId/pdf')
   async tuitionReceiptPdf(
     @ParentUser() jwt: ParentJwtPayload,

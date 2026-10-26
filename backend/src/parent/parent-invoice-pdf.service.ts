@@ -6,13 +6,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PaymentStatus, ProgramEventStatus, type ParentRelation } from '@prisma/client';
+import {
+  PaymentStatus,
+  ProgramEventStatus,
+  WorkshopReservationStatus,
+  type ParentRelation,
+} from '@prisma/client';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import puppeteer from 'puppeteer';
 import { PrismaService } from '../prisma/prisma.service';
 import { readSchoolContact } from '../config/school-contact';
 import { AdminProgrammeService } from '../admin/admin-programme.service';
+import { formatDateRangeLongFr, workshopEnd } from '../workshops/workshop-date.util';
 import {
   buildParentProgrammeHtml,
   type ParentProgrammePdfGroup,
@@ -689,4 +695,121 @@ export class ParentInvoicePdfService {
     const filename = this.safeFilename(`Recu-paiement-${rec}.pdf`);
     return { buffer, filename };
   }
+
+  /**
+   * Facture d’atelier (réservation payante, non annulée).
+   * `parentUserId` restreint à la réservation du parent ; sans id = accès admin.
+   */
+  async workshopPdf(
+    reservationId: string,
+    parentUserId?: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const reservation = await this.prisma.workshopReservation.findFirst({
+      where: {
+        id: reservationId,
+        ...(parentUserId ? { userId: parentUserId } : {}),
+      },
+      include: {
+        workshop: true,
+        user: {
+          select: {
+            fullName: true,
+            email: true,
+            phone: true,
+            address: true,
+            parentRelation: true,
+          },
+        },
+      },
+    });
+    if (!reservation) throw new NotFoundException('Réservation introuvable.');
+    if (reservation.status === WorkshopReservationStatus.ANNULEE) {
+      throw new BadRequestException('Impossible d’éditer une facture pour une réservation annulée.');
+    }
+    if (reservation.workshop.isFree) {
+      throw new BadRequestException('Cet atelier est gratuit : aucune facture n’est émise.');
+    }
+
+    const workshop = reservation.workshop;
+    const unitXof = parseXofFromLabel(workshop.priceLabel);
+    const qty = Math.max(1, reservation.places);
+    const totalXof = unitXof * qty;
+    const unitLabel = unitXof > 0 ? formatXofFromCents(unitXof * 100) : workshop.priceLabel?.trim() || '—';
+    const totalLabel = unitXof > 0 ? formatXofFromCents(totalXof * 100) : workshop.priceLabel?.trim() || '—';
+    const session = formatDateRangeLongFr(workshop.eventDate, workshopEnd(workshop));
+    const y = workshop.eventDate.getFullYear();
+    const inv = stableInvoiceNumber(y, reservation.id);
+    const schoolYear = schoolYearFromDate(workshop.eventDate);
+
+    const contact: BillingContact = reservation.user
+      ? {
+          fullName: reservation.user.fullName,
+          email: reservation.user.email?.trim() || '—',
+          phone: reservation.user.phone,
+          address: reservation.user.address,
+          parentRelation: reservation.user.parentRelation,
+        }
+      : {
+          fullName: reservation.parentName,
+          email: '—',
+          phone: reservation.parentPhone,
+          address: null,
+          parentRelation: null,
+        };
+
+    const billedName = reservation.parentName.trim() || this.billedToTitle(contact);
+    const b = this.branding();
+    const html = buildParentInvoiceHtml({
+      documentTitle: 'Facture d’atelier',
+      schoolDisplayName: b.schoolDisplayName,
+      headerSubline: `${b.contactEmail} · Atelier ${workshop.title}`,
+      contactEmail: b.contactEmail,
+      administrationEmail: b.administrationEmail,
+      emergencyPhone: b.emergencyPhone,
+      paymentModesLine: b.paymentModesLine,
+      logoDataUri: this.getLogoDataUri(),
+      invoiceNumber: inv,
+      issueDateFr: this.issueDateFr(reservation.reservedAt),
+      dueDateFr: this.issueDateFr(workshop.eventDate),
+      schoolYearLine: `${schoolYear} · Réservation ${reservation.code}`,
+      studentNameWithLevel: `${reservation.childName} — Atelier`,
+      matriculeLine: `Réservation : ${reservation.code}`,
+      billedToTitle: billedName,
+      billedAddress: this.billedAddress(contact) !== '—'
+        ? this.billedAddress(contact)
+        : [reservation.parentPhone, contact.email !== '—' ? contact.email : null]
+            .filter(Boolean)
+            .join('\n') || '—',
+      lines: [
+        {
+          description: `Inscription — ${workshop.title} (${session})`,
+          qty: String(qty),
+          unitPrice: unitLabel,
+          amount: totalLabel,
+        },
+      ],
+      totalAmount: totalLabel,
+      parentContactLine:
+        this.parentContactLine(contact) !== '—'
+          ? this.parentContactLine(contact)
+          : [reservation.parentName, reservation.parentPhone].filter(Boolean).join(' · ') || '—',
+      generatedDateFr: this.issueDateFr(),
+    });
+    const buffer = await this.htmlToPdfBuffer(html);
+    const filename = this.safeFilename(`Facture-atelier-${reservation.code}-${inv}.pdf`);
+    return { buffer, filename };
+  }
+}
+
+function parseXofFromLabel(label: string | null | undefined): number {
+  const digits = String(label ?? '').replace(/[^\d]/g, '');
+  if (!digits) return 0;
+  const n = Number.parseInt(digits, 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function schoolYearFromDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = d.getMonth();
+  return m >= 8 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
 }

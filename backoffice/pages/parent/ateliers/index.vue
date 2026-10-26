@@ -181,6 +181,9 @@
       <p v-else-if="reservationsError" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
         {{ reservationsError }}
       </p>
+      <p v-if="invoiceError" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        {{ invoiceError }}
+      </p>
       <p
         v-else-if="!reservations.length"
         class="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-6 py-14 text-center text-sm text-slate-500"
@@ -220,8 +223,18 @@
             </p>
             <p class="mt-1 text-xs text-slate-400">
               {{ r.places }} place{{ r.places > 1 ? 's' : '' }} · Réservé le {{ r.reservedAtLabel }}
+              <span v-if="r.workshop.price"> · {{ r.workshop.price }}</span>
             </p>
           </div>
+          <button
+            v-if="r.invoiceAvailable"
+            type="button"
+            class="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-brandBlue bg-white px-4 text-sm font-semibold text-brandBlue disabled:opacity-50"
+            :disabled="invoiceBusyId === r.id"
+            @click="downloadReservationInvoice(r)"
+          >
+            {{ invoiceBusyId === r.id ? 'Facture…' : 'Télécharger la facture' }}
+          </button>
         </article>
       </div>
     </div>
@@ -259,16 +272,18 @@ type Reservation = {
   places: number
   childName: string
   reservedAtLabel: string
+  invoiceAvailable?: boolean
   workshop: {
     id: string
     title: string
     image: string
     date: string
     time: string
+    price?: string
   }
 }
 
-const { authFetch } = useParentAuth()
+const { authFetch, authFetchBlob } = useParentAuth()
 const config = useRuntimeConfig()
 
 const tab = ref<'ateliers' | 'reservations'>('ateliers')
@@ -280,6 +295,8 @@ const reservations = ref<Reservation[]>([])
 const reservationsPending = ref(false)
 const reservationsError = ref<string | null>(null)
 const reservationsLoaded = ref(false)
+const invoiceBusyId = ref<string | null>(null)
+const invoiceError = ref<string | null>(null)
 
 const search = ref('')
 const dateFilter = ref('')
@@ -346,6 +363,30 @@ async function loadWorkshops() {
     items.value = []
   } finally {
     pending.value = false
+  }
+}
+
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+async function downloadReservationInvoice(row: Reservation) {
+  invoiceError.value = null
+  invoiceBusyId.value = row.id
+  try {
+    const { blob, filename } = await authFetchBlob(`/parent/invoices/workshop/${row.id}/pdf`)
+    triggerBlobDownload(blob, filename || `Facture-atelier-${row.code}.pdf`)
+  } catch (e: unknown) {
+    invoiceError.value = e instanceof Error ? e.message : 'Impossible de télécharger la facture.'
+  } finally {
+    invoiceBusyId.value = null
   }
 }
 

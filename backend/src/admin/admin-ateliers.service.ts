@@ -37,6 +37,10 @@ function parseBool(raw: unknown, fallback = false): boolean {
   return fallback;
 }
 
+function invoiceAvailable(isFree: boolean, status: WorkshopReservationStatus): boolean {
+  return !isFree && status !== WorkshopReservationStatus.ANNULEE;
+}
+
 function parseStatus(raw: unknown): WorkshopReservationStatus {
   const v = String(raw ?? '').trim().toUpperCase();
   if (v === 'VALIDEE' || v === 'EN_ATTENTE' || v === 'ANNULEE') return v as WorkshopReservationStatus;
@@ -535,6 +539,9 @@ export class AdminAteliersService {
           ageRange: r.workshop.ageRange || r.workshop.recommendedAge || '—',
           status: r.status,
           accountKind: r.accountKind,
+          isFree: r.workshop.isFree,
+          priceLabel: r.workshop.isFree ? 'Gratuit' : r.workshop.priceLabel || '—',
+          invoiceAvailable: invoiceAvailable(r.workshop.isFree, r.status),
           reservedAt: formatReservedAt(r.reservedAt),
           reservedAtDate: reservedParts.reservedAtDate,
           reservedAtTime: reservedParts.reservedAtTime,
@@ -610,6 +617,9 @@ export class AdminAteliersService {
         parentPhone: r.parentPhone ?? '',
         places: r.places,
         status: r.status,
+        isFree: workshop.isFree,
+        priceLabel: workshop.isFree ? 'Gratuit' : workshop.priceLabel || '—',
+        invoiceAvailable: invoiceAvailable(workshop.isFree, r.status),
         reservedAt: formatReservedAt(r.reservedAt),
       })),
     };

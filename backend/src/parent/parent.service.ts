@@ -1178,7 +1178,9 @@ export class ParentService {
           time: `De ${r.workshop.startTime.replace(':', 'H')} à ${r.workshop.endTime.replace(':', 'H')}`,
           age: r.workshop.ageRange || r.workshop.recommendedAge || '—',
           price: r.workshop.isFree ? 'Gratuit' : r.workshop.priceLabel || '—',
+          isFree: r.workshop.isFree,
         },
+        invoiceAvailable: !r.workshop.isFree && r.status !== WorkshopReservationStatus.ANNULEE,
       })),
     };
   }
